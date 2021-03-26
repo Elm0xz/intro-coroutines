@@ -57,6 +57,7 @@ interface Contributors: CoroutineScope {
             BLOCKING -> { // Blocking UI thread
                 val users = loadContributorsBlocking(service, req)
                 updateResults(users, startTime)
+
             }
             BACKGROUND -> { // Blocking a background thread
                 loadContributorsBackground(service, req) { users ->
@@ -79,9 +80,11 @@ interface Contributors: CoroutineScope {
                 }.setUpCancellation()
             }
             CONCURRENT -> { // Performing requests concurrently
-                launch {
+                launch(Dispatchers.Default) {
                     val users = loadContributorsConcurrent(service, req)
-                    updateResults(users, startTime)
+                    withContext(Dispatchers.Main) {
+                        updateResults(users, startTime)
+                    }
                 }.setUpCancellation()
             }
             NOT_CANCELLABLE -> { // Performing requests in a non-cancellable way
@@ -114,6 +117,7 @@ interface Contributors: CoroutineScope {
     private enum class LoadingStatus { COMPLETED, CANCELED, IN_PROGRESS }
 
     private fun clearResults() {
+        async {}
         updateContributors(listOf())
         updateLoadingStatus(IN_PROGRESS)
         setActionsStatus(newLoadingEnabled = false)
